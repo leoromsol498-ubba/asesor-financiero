@@ -1,0 +1,10 @@
+<h2>Entrar a Asesor Financiero</h2>
+<p>Toca el botón para entrar. El enlace vence en 1 hora.</p>
+<p>
+  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
+     style="display:inline-block;background:#0a0a0a;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none">
+    Entrar
+  </a>
+</p>
+<p>¿Lo abriste en otro dispositivo? Escribe este código en la app: <strong style="font-size:20px;letter-spacing:2px">{{ .Token }}</strong></p>
+<p style="color:#737373;font-size:12px">Si no pediste este correo, ignóralo.</p>
