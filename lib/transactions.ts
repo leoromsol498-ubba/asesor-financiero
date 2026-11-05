@@ -101,6 +101,9 @@ export async function prepararMovimientos(
   // 2) IA para lo que no tuvo regla
   let aviso: string | null = null;
   const pendientes = drafts.filter((d) => !d.category_id && !d.duplicado);
+  if (pendientes.length > 0 && !usarIA) {
+    aviso = `IA apagada: ${pendientes.length} movimiento${pendientes.length === 1 ? "" : "s"} sin regla irá${pendientes.length === 1 ? "" : "n"} a “Por revisar”. También puedes elegir la categoría aquí mismo.`;
+  }
   if (pendientes.length > 0 && usarIA && cats.length > 0) {
     try {
       const res = await categorizarLote(

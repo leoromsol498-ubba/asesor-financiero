@@ -7,6 +7,16 @@ import { enviarCorreo, plantilla } from "@/lib/email";
 import { reporteSemanal, revisarPagos } from "@/lib/jobs";
 import { requireUser } from "@/lib/supabase/server";
 
+export async function cambiarIA(encender: boolean): Promise<ActionResult> {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase
+    .from("user_settings")
+    .upsert({ user_id: user.id, usar_ia: encender, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (error) return { error: `No se pudo guardar: ${error.message}. ¿Ejecutaste el archivo supabase/setup.sql actualizado?` };
+  revalidatePath("/", "layout");
+  return { ok: encender ? "IA encendida." : "IA apagada. Ya no se gastarán tokens." };
+}
+
 export async function cargarDemo(): Promise<ActionResult> {
   const { supabase } = await requireUser();
   const { error } = await supabase.rpc("cargar_datos_demo");

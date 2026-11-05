@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/app/page-header";
 import { Empty } from "@/components/ui/empty";
 import { todayISO } from "@/lib/dates";
+import { usarIA } from "@/lib/settings";
 import { requireUser } from "@/lib/supabase/server";
 import { FileImport } from "./file-import";
 import { PdfImport } from "./pdf-import";
@@ -12,9 +13,10 @@ export const maxDuration = 300;
 
 export default async function ImportarPage() {
   const { supabase } = await requireUser();
-  const [{ data: cuentas }, { data: categorias }] = await Promise.all([
+  const [{ data: cuentas }, { data: categorias }, ia] = await Promise.all([
     supabase.from("accounts").select("id, nombre").order("created_at"),
     supabase.from("categories").select("id, nombre").order("nombre"),
+    usarIA(supabase),
   ]);
   const c = cuentas ?? [];
   const k = categorias ?? [];
@@ -34,9 +36,9 @@ export default async function ImportarPage() {
       )}
       <Tabs
         tabs={[
-          { id: "rapida", label: "Rápida", content: <QuickCapture cuentas={c} categorias={k} hoy={todayISO()} /> },
-          { id: "archivo", label: "CSV / Excel", content: <FileImport cuentas={c} categorias={k} /> },
-          { id: "pdf", label: "PDF", content: <PdfImport cuentas={c} categorias={k} /> },
+          { id: "rapida", label: ia ? "Rápida" : "Manual", content: <QuickCapture cuentas={c} categorias={k} hoy={todayISO()} usarIA={ia} /> },
+          { id: "archivo", label: "CSV / Excel", content: <FileImport cuentas={c} categorias={k} usarIA={ia} /> },
+          ...(ia ? [{ id: "pdf", label: "PDF", content: <PdfImport cuentas={c} categorias={k} /> }] : []),
         ]}
       />
     </>

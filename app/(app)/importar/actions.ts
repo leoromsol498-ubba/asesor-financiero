@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { AIError, extraerEstadoDeCuenta, interpretarCaptura } from "@/lib/ai";
 import { todayISO } from "@/lib/dates";
+import { MENSAJE_IA_APAGADA, usarIA } from "@/lib/settings";
 import { requireUser } from "@/lib/supabase/server";
 import { guardarMovimientos, prepararMovimientos, type FilaEntrada } from "@/lib/transactions";
 import type { DraftTransaction } from "@/lib/types";
@@ -36,6 +37,7 @@ export async function prepararDesdeArchivo(
   const { drafts, aviso } = await prepararMovimientos(
     supabase,
     parsed.data.map((f) => ({ ...f, account_id: accountId })),
+    { usarIA: await usarIA(supabase) },
   );
   return { drafts, aviso, importId: imp?.id ?? null };
 }
@@ -54,6 +56,7 @@ export async function registrarImportPDF(nombreArchivo: string): Promise<{ id?: 
 
 export async function procesarPDF(importId: string, accountId: string | null): Promise<Preparado> {
   const { supabase } = await requireUser();
+  if (!(await usarIA(supabase))) return { error: MENSAJE_IA_APAGADA };
   const { data: imp } = await supabase.from("imports").select("id, ruta_storage").eq("id", importId).single();
   if (!imp?.ruta_storage) return { error: "No se encontró el archivo." };
 
@@ -98,6 +101,7 @@ export async function interpretarLinea(texto: string): Promise<Preparado> {
   if (!t) return { error: "Escribe algo, por ejemplo: 350 súper con débito" };
   if (t.length > 300) return { error: "Texto demasiado largo." };
   const { supabase } = await requireUser();
+  if (!(await usarIA(supabase))) return { error: MENSAJE_IA_APAGADA };
   const [{ data: cuentas }, { data: cats }] = await Promise.all([
     supabase.from("accounts").select("id, nombre, tipo").order("created_at"),
     supabase.from("categories").select("id, nombre").order("nombre"),
@@ -140,9 +144,11 @@ export async function prepararManual(input: {
   const p = FilaSchema.safeParse(input);
   if (!p.success || !(input.monto > 0)) return { error: "Revisa la fecha, la descripción y el monto." };
   const { supabase } = await requireUser();
-  const { drafts, aviso } = await prepararMovimientos(supabase, [
-    { ...p.data, account_id: input.account_id, category_id: input.category_id || null },
-  ]);
+  const { drafts, aviso } = await prepararMovimientos(
+    supabase,
+    [{ ...p.data, account_id: input.account_id, category_id: input.category_id || null }],
+    { usarIA: await usarIA(supabase) },
+  );
   return { drafts, aviso };
 }
 

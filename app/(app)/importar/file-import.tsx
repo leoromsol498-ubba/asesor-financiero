@@ -28,7 +28,7 @@ async function leerArchivo(file: File): Promise<Celda[][]> {
   return r.data;
 }
 
-export function FileImport({ cuentas, categorias }: { cuentas: Opcion[]; categorias: Opcion[] }) {
+export function FileImport({ cuentas, categorias, usarIA = true }: { cuentas: Opcion[]; categorias: Opcion[]; usarIA?: boolean }) {
   const [archivo, setArchivo] = useState<string | null>(null);
   const [filas, setFilas] = useState<Celda[][] | null>(null);
   const [mapeo, setMapeo] = useState<Mapeo | null>(null);
@@ -72,7 +72,12 @@ export function FileImport({ cuentas, categorias }: { cuentas: Opcion[]; categor
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" /> CSV o Excel</CardTitle>
-        <CardDescription>Descarga tus movimientos desde la banca en línea (.csv o .xlsx) y súbelos aquí.</CardDescription>
+        <CardDescription>
+          Descarga tus movimientos desde la banca en línea (.csv o .xlsx) y súbelos aquí.{" "}
+          {usarIA
+            ? "Lo que no tenga regla se categoriza con IA."
+            : "IA apagada: se aplican tus reglas y lo demás lo categorizas tú."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <input

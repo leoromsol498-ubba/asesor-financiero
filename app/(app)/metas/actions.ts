@@ -7,6 +7,7 @@ import { AIError, proponerAhorro, type PropuestaAhorro } from "@/lib/ai";
 import { cargarPresupuesto } from "@/lib/data";
 import { todayISO } from "@/lib/dates";
 import { analizarMeta } from "@/lib/goals";
+import { MENSAJE_IA_APAGADA, usarIA } from "@/lib/settings";
 import { requireUser } from "@/lib/supabase/server";
 
 const num = (v: unknown) => Number(String(v ?? "").replace(/[$,\s]/g, ""));
@@ -55,6 +56,7 @@ export async function borrarMeta(id: string) {
 
 export async function sugerirAhorro(goalId: string): Promise<{ propuesta?: PropuestaAhorro; error?: string }> {
   const { supabase } = await requireUser();
+  if (!(await usarIA(supabase))) return { error: MENSAJE_IA_APAGADA };
   const hoy = todayISO();
   const [{ data: meta }, { data: aportes }] = await Promise.all([
     supabase.from("savings_goals").select("*").eq("id", goalId).single(),

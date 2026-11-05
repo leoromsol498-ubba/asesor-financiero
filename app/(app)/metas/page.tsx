@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { addMonths, todayISO } from "@/lib/dates";
 import { fechaCorta, money, pct } from "@/lib/format";
 import { analizarMeta } from "@/lib/goals";
+import { usarIA } from "@/lib/settings";
 import { requireUser } from "@/lib/supabase/server";
 import type { SavingsGoal } from "@/lib/types";
 import { borrarMeta, crearMeta, registrarAporte } from "./actions";
@@ -24,9 +25,10 @@ function Dato({ label, value }: { label: string; value: string }) {
 export default async function MetasPage() {
   const { supabase } = await requireUser();
   const hoy = todayISO();
-  const [{ data: metas }, { data: aportes }] = await Promise.all([
+  const [{ data: metas }, { data: aportes }, ia] = await Promise.all([
     supabase.from("savings_goals").select("*").order("fecha_objetivo"),
     supabase.from("goal_contributions").select("goal_id, fecha, monto").order("fecha"),
+    usarIA(supabase),
   ]);
 
   return (
@@ -63,7 +65,7 @@ export default async function MetasPage() {
                   <Dato label="Tu ritmo al mes" value={money(a.ritmoMensual)} />
                 </div>
                 <p className="rounded-lg border border-border p-2 text-sm">{estado}</p>
-                {!a.completada && <SuggestButton goalId={m.id} />}
+                {!a.completada && ia && <SuggestButton goalId={m.id} />}
                 <details>
                   <summary className="cursor-pointer text-sm text-neutral-600">Registrar aportación</summary>
                   <ActionForm action={registrarAporte.bind(null, m.id)} submit="Registrar" resetOnSuccess className="mt-3">

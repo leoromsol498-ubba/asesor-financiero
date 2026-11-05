@@ -3,8 +3,9 @@ import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { anthropicModel, APP_CURRENCY, APP_TIMEZONE } from "@/lib/config";
 import { emailFrom } from "@/lib/email";
+import { usarIA } from "@/lib/settings";
 import { requireUser } from "@/lib/supabase/server";
-import { borrarDemo, cargarDemo, correoPrueba, probarAlertas, probarReporte } from "./actions";
+import { borrarDemo, cambiarIA, cargarDemo, correoPrueba, probarAlertas, probarReporte } from "./actions";
 
 function Estado({ nombre, ok }: { nombre: string; ok: boolean }) {
   return (
@@ -16,13 +17,39 @@ function Estado({ nombre, ok }: { nombre: string; ok: boolean }) {
 }
 
 export default async function AjustesPage() {
-  const { user } = await requireUser();
+  const { supabase, user } = await requireUser();
   const env = process.env;
+  const ia = await usarIA(supabase);
 
   return (
     <>
       <PageHeader titulo="Ajustes" descripcion={`Sesión: ${user.email}`} />
       <div className="grid gap-4 md:grid-cols-2">
+        <Card className="md:col-span-2">
+          <CardHeader className="flex-row items-start justify-between gap-3">
+            <div>
+              <CardTitle>Inteligencia artificial</CardTitle>
+              <CardDescription>
+                {ia
+                  ? "Encendida: se usa para la captura rápida, los PDF, categorizar lo que no tiene regla y las sugerencias. Cuesta unos centavos por uso."
+                  : "Apagada: no se gasta ningún token. Capturas a mano, importas CSV con tus reglas y lo demás va a “Por revisar”. La captura rápida, los PDF y las sugerencias se ocultan."}
+              </CardDescription>
+            </div>
+            <span className={ia ? "shrink-0 rounded-full bg-neutral-900 px-3 py-1 text-xs text-white" : "shrink-0 rounded-full border border-border px-3 py-1 text-xs"}>
+              {ia ? "Encendida" : "Apagada"}
+            </span>
+          </CardHeader>
+          <CardContent>
+            <ActionForm
+              action={cambiarIA.bind(null, !ia)}
+              submit={ia ? "Apagar IA" : "Encender IA"}
+              pending="Guardando…"
+              buttonVariant={ia ? "outline" : "default"}
+              className="md:max-w-xs"
+            />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Datos de ejemplo</CardTitle>

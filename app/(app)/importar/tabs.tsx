@@ -7,7 +7,7 @@ export function Tabs({ tabs }: { tabs: { id: string; label: string; content: Rea
   const [activa, setActiva] = useState(tabs[0].id);
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1">
+      <div className="grid gap-1 rounded-xl bg-muted p-1" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
         {tabs.map((t) => (
           <button
             key={t.id}

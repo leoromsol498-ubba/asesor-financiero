@@ -7,6 +7,7 @@ import { addDays, diffDays } from "./dates";
 import { enviarCorreo, esc, plantilla, ROJO, tabla } from "./email";
 import { fechaCorta, money, pct } from "./format";
 import { analizarMeta } from "./goals";
+import { usarIA } from "./settings";
 import type { Account, ScheduledPayment } from "./types";
 
 // Estas funciones reciben siempre el user_id y filtran por él, porque los
@@ -114,6 +115,7 @@ export async function reporteSemanal(db: SupabaseClient, userId: string, hoy: st
   // Acción recomendada (IA). Si falla, usamos una regla sencilla.
   let accion: string;
   try {
+    if (!(await usarIA(db, userId))) throw new Error("IA apagada");
     accion = await accionSemanal({
       hoy,
       gastado_mes: p.gastadoMes,

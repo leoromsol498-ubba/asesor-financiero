@@ -35,7 +35,15 @@ Funciona en el celular y la puedes agregar a tu pantalla de inicio como si fuera
 | **Metas** | Cuánto llevas ahorrado, cuánto apartar por mes y por quincena, y si llegas a tiempo al ritmo de los últimos 3 meses. El botón **"¿De dónde saco la diferencia?"** te propone recortes concretos. |
 | **Calendario** | Fechas de corte y límite de pago de tus tarjetas, y tus pagos programados (renta, seguros, etc.). |
 | **Cuentas / Categorías** | Das de alta tus tarjetas y cuentas, y defines el presupuesto mensual de cada categoría. |
-| **Ajustes** | Cargar **datos de ejemplo**, probar los correos y ver qué configuración falta. |
+| **Ajustes** | **Encender o apagar la IA**, cargar **datos de ejemplo**, probar los correos y ver qué configuración falta. |
+
+**Usar la app sin IA (sin gastar nada):** en **Ajustes → Inteligencia artificial** presiona **Apagar IA**. Con la IA apagada:
+- Capturas a mano.
+- Al importar CSV/Excel se aplican tus reglas aprendidas y lo demás va a "Por revisar".
+- La captura rápida, los PDF y el botón de sugerencias se ocultan.
+- El reporte semanal usa una recomendación simple.
+
+Puedes encenderla de nuevo cuando quieras. También funciona sin configurar la llave de Anthropic.
 
 **Correos automáticos:**
 
@@ -393,4 +401,4 @@ tests/                   Pruebas automáticas de los cálculos
 | Vercel Hobby | Gratis |
 | Supabase Free | Gratis. Se pausa tras 1 semana sin uso; los correos diarios lo mantienen activo. |
 | Resend Free | Gratis (3,000 correos al mes) |
-| Anthropic | Por uso: categorizar un lote o una captura rápida cuesta fracciones de centavo; un estado de cuenta en PDF, unos pocos centavos de dólar. |
+| Anthropic | Por uso: una captura rápida ~0.003 USD; categorizar 80 movimientos ~0.04 USD; un estado de cuenta en PDF ~0.10 a 0.20 USD. Un mes típico ronda 1 USD. Con la IA apagada: 0. |

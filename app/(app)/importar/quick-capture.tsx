@@ -11,7 +11,7 @@ import { PreviewEditor } from "./preview-editor";
 
 type Opcion = { id: string; nombre: string };
 
-export function QuickCapture({ cuentas, categorias, hoy }: { cuentas: Opcion[]; categorias: Opcion[]; hoy: string }) {
+export function QuickCapture({ cuentas, categorias, hoy, usarIA = true }: { cuentas: Opcion[]; categorias: Opcion[]; hoy: string; usarIA?: boolean }) {
   const [texto, setTexto] = useState("");
   const [res, setRes] = useState<Preparado | null>(null);
   const [pending, start] = useTransition();
@@ -36,6 +36,7 @@ export function QuickCapture({ cuentas, categorias, hoy }: { cuentas: Opcion[]; 
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      {usarIA && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> Captura rápida</CardTitle>
@@ -57,11 +58,12 @@ export function QuickCapture({ cuentas, categorias, hoy }: { cuentas: Opcion[]; 
           </form>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Captura manual</CardTitle>
-          <CardDescription>Sin IA, llenando cada campo.</CardDescription>
+          <CardDescription>Sin IA y sin costo, llenando cada campo.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -96,7 +98,10 @@ export function QuickCapture({ cuentas, categorias, hoy }: { cuentas: Opcion[]; 
               </Select>
             </Field>
             <div className="col-span-2">
-              <Field label="Categoría" hint="Si la dejas vacía, se categoriza con tus reglas o con IA.">
+              <Field
+                label="Categoría"
+                hint={usarIA ? "Elige una para no usar IA. En “Automática” se usan tus reglas y, si no hay, la IA." : "En “Automática” se usan tus reglas; si no hay, va a “Por revisar”."}
+              >
                 <Select name="category_id" defaultValue="">
                   <option value="">Automática</option>
                   {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
