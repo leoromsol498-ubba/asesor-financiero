@@ -14,7 +14,7 @@ export const maxDuration = 300;
 export default async function ImportarPage() {
   const { supabase } = await requireUser();
   const [{ data: cuentas }, { data: categorias }, ia] = await Promise.all([
-    supabase.from("accounts").select("id, nombre").order("created_at"),
+    supabase.from("accounts").select("id, nombre, saldo_fecha").order("created_at"),
     supabase.from("categories").select("id, nombre").order("nombre"),
     usarIA(supabase),
   ]);

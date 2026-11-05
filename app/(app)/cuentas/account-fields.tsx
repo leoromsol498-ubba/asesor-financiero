@@ -17,7 +17,7 @@ export function AccountFields({ a }: { a?: Account }) {
           <option value="ahorro">Ahorro</option>
         </Select>
       </Field>
-      <Field label="Saldo actual" hint="En crédito: deuda en negativo">
+      <Field label="Saldo actual" hint="Tal como lo ves hoy en tu banco (en crédito, la deuda en negativo). Desde hoy se actualiza solo con tus movimientos.">
         <Input name="saldo_actual" inputMode="decimal" defaultValue={a?.saldo_actual ?? ""} placeholder="0.00" />
       </Field>
       <Field label="Día de corte" hint="Solo tarjetas de crédito">

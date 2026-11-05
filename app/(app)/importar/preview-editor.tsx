@@ -9,7 +9,7 @@ import type { DraftTransaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { guardarBorradores } from "./actions";
 
-type Opcion = { id: string; nombre: string };
+type Opcion = { id: string; nombre: string; saldo_fecha?: string };
 
 /** Vista previa editable: confirmas, corriges y guardas. */
 export function PreviewEditor({
@@ -39,6 +39,11 @@ export function PreviewEditor({
   const duplicados = rows.filter((r) => r.duplicado).length;
   const porRevisar = incluidos.filter((r) => r.requiere_revision).length;
   const totalGasto = incluidos.filter((r) => r.tipo === "gasto").reduce((s, r) => s + r.monto, 0);
+  const fechaSaldo = new Map(cuentas.map((c) => [c.id, c.saldo_fecha]));
+  const anteriores = incluidos.filter((r) => {
+    const f = r.account_id ? fechaSaldo.get(r.account_id) : undefined;
+    return f && r.fecha < f;
+  }).length;
 
   function guardar() {
     start(async () => {
@@ -62,6 +67,12 @@ export function PreviewEditor({
         <Badge>Gastos {money(totalGasto)}</Badge>
       </div>
       {aviso && <p className="rounded-lg border border-border p-2 text-sm">{aviso}</p>}
+      {anteriores > 0 && (
+        <p className="rounded-lg border border-border p-2 text-sm text-neutral-600">
+          {anteriores} movimiento{anteriores === 1 ? " es anterior" : "s son anteriores"} a la fecha de tu saldo registrado y no{" "}
+          {anteriores === 1 ? "lo modificará" : "lo modificarán"} (se cuenta que ya está incluido en el saldo de tu banco).
+        </p>
+      )}
 
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border">
         {rows.map((r) => (

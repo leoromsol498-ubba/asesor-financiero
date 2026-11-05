@@ -2,7 +2,7 @@ import { ActionForm, ConfirmButton } from "@/components/app/action-form";
 import { PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { money } from "@/lib/format";
+import { fechaCorta, money } from "@/lib/format";
 import { requireUser } from "@/lib/supabase/server";
 import type { Account } from "@/lib/types";
 import { AccountFields } from "./account-fields";
@@ -34,6 +34,9 @@ export default async function CuentasPage() {
               <p className="text-lg font-semibold tabular">{money(c.saldo_actual)}</p>
             </CardHeader>
             <CardContent>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Se actualiza solo con los movimientos desde el {fechaCorta(c.saldo_fecha)}. Si no coincide con tu banco, edítalo.
+              </p>
               {c.tipo === "credito" && (
                 <p className="mb-2 text-sm text-muted-foreground">
                   Corte: día {c.dia_corte ?? "—"} · Límite de pago: día {c.dia_limite_pago ?? "—"}

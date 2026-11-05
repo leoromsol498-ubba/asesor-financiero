@@ -34,7 +34,7 @@ Funciona en el celular y la puedes agregar a tu pantalla de inicio como si fuera
 | **Movimientos** | Todo lo registrado, por mes, con buscador y filtros. |
 | **Metas** | Cuánto llevas ahorrado, cuánto apartar por mes y por quincena, y si llegas a tiempo al ritmo de los últimos 3 meses. El botón **"¿De dónde saco la diferencia?"** te propone recortes concretos. |
 | **Calendario** | Fechas de corte y límite de pago de tus tarjetas, y tus **pagos e ingresos programados** (renta, seguros, nómina…). Pueden ser semanales, cada 14 días, quincenales, mensuales, anuales o únicos, y pueden **registrarse solos** como movimiento en su fecha. |
-| **Cuentas / Categorías** | Das de alta tus tarjetas y cuentas, y defines el presupuesto mensual de cada categoría. |
+| **Cuentas / Categorías** | Das de alta tus tarjetas y cuentas, y defines el presupuesto mensual de cada categoría. El **saldo de cada cuenta se actualiza solo** con los movimientos desde el día en que lo capturaste (ver abajo). |
 | **Ajustes** | **Encender o apagar la IA**, cargar **datos de ejemplo**, probar los correos y ver qué configuración falta. |
 
 **Usar la app sin IA (sin gastar nada):** en **Ajustes → Inteligencia artificial** presiona **Apagar IA**. Con la IA apagada:
@@ -218,7 +218,14 @@ La app ya rechaza cualquier correo distinto al tuyo; este paso agrega un segundo
 5. Cuando termines de explorar, presiona **Borrar datos de ejemplo**. Tus datos reales no se tocan.
 6. Configura tus datos reales:
    1. **Categorías**: presiona *Crear categorías básicas* y ajusta los presupuestos.
-   2. **Cuentas**: da de alta tus tarjetas, con los días de corte y de pago y **solo los últimos 4 dígitos**.
+   2. **Cuentas**: da de alta tus tarjetas, con los días de corte y de pago y **solo los últimos 4 dígitos**. Escribe el saldo tal como lo ves hoy en tu banco.
+
+      **Cómo se actualiza el saldo:**
+      - Los movimientos con fecha **desde ese día** lo actualizan solos. En débito, efectivo o ahorro, un gasto resta y un ingreso suma. En crédito, un gasto aumenta la deuda y un pago la reduce.
+      - Editar o borrar un movimiento también ajusta el saldo.
+      - Los movimientos con fecha **anterior** (por ejemplo, un estado de cuenta de meses pasados) no lo tocan, porque se considera que el saldo de tu banco ya los incluye.
+      - Si el saldo deja de coincidir con tu banco, edítalo: ese día se vuelve el nuevo punto de partida.
+      - Los datos de ejemplo no modifican saldos.
    3. **Calendario**: agrega tus pagos fijos (renta, seguros, colegiaturas…) y tus ingresos fijos (nómina quincenal, por ejemplo).
       - Marca **Registrar automáticamente** si quieres que el movimiento se cree solo en su fecha.
       - No lo marques si también importas el estado de cuenta de esa cuenta, porque quedaría duplicado.

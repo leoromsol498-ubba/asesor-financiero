@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionResult } from "@/components/app/action-form";
+import { todayISO } from "@/lib/dates";
 import { requireUser } from "@/lib/supabase/server";
 
 const dia = z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(1).max(31).nullable());
@@ -27,7 +28,7 @@ export async function crearCuenta(_: ActionResult, formData: FormData): Promise<
   const p = leer(formData);
   if (!p.success) return { error: p.error.issues[0].message };
   const { supabase } = await requireUser();
-  const { error } = await supabase.from("accounts").insert(p.data);
+  const { error } = await supabase.from("accounts").insert({ ...p.data, saldo_fecha: todayISO() });
   if (error) return { error: error.message };
   revalidatePath("/", "layout");
   return { ok: "Cuenta creada" };
@@ -37,7 +38,13 @@ export async function actualizarCuenta(id: string, _: ActionResult, formData: Fo
   const p = leer(formData);
   if (!p.success) return { error: p.error.issues[0].message };
   const { supabase } = await requireUser();
-  const { error } = await supabase.from("accounts").update(p.data).eq("id", id);
+  // Si cambiaste el saldo a mano, hoy es el nuevo punto de partida
+  const { data: actual } = await supabase.from("accounts").select("saldo_actual").eq("id", id).single();
+  const cambioSaldo = !actual || Number(actual.saldo_actual) !== p.data.saldo_actual;
+  const { error } = await supabase
+    .from("accounts")
+    .update(cambioSaldo ? { ...p.data, saldo_fecha: todayISO() } : p.data)
+    .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/", "layout");
   return { ok: "Guardado" };

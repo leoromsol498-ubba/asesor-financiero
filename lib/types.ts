@@ -12,6 +12,8 @@ export interface Account {
   dia_limite_pago: number | null;
   saldo_actual: number;
   ultimos_4: string | null;
+  /** Desde esta fecha los movimientos actualizan saldo_actual automáticamente */
+  saldo_fecha: string;
   es_demo: boolean;
 }
 
