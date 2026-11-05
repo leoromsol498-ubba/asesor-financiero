@@ -33,7 +33,7 @@ Funciona en el celular y la puedes agregar a tu pantalla de inicio como si fuera
 | **Por revisar** | Movimientos que la IA no pudo categorizar con seguridad. Los corriges con un toque y la app **aprende**: la próxima vez ese comercio se categoriza solo. |
 | **Movimientos** | Todo lo registrado, por mes, con buscador y filtros. |
 | **Metas** | Cuánto llevas ahorrado, cuánto apartar por mes y por quincena, y si llegas a tiempo al ritmo de los últimos 3 meses. El botón **"¿De dónde saco la diferencia?"** te propone recortes concretos. |
-| **Calendario** | Fechas de corte y límite de pago de tus tarjetas, y tus pagos programados (renta, seguros, etc.). |
+| **Calendario** | Fechas de corte y límite de pago de tus tarjetas, y tus **pagos e ingresos programados** (renta, seguros, nómina…). Pueden ser semanales, cada 14 días, quincenales, mensuales, anuales o únicos, y pueden **registrarse solos** como movimiento en su fecha. |
 | **Cuentas / Categorías** | Das de alta tus tarjetas y cuentas, y defines el presupuesto mensual de cada categoría. |
 | **Ajustes** | **Encender o apagar la IA**, cargar **datos de ejemplo**, probar los correos y ver qué configuración falta. |
 
@@ -47,7 +47,7 @@ Puedes encenderla de nuevo cuando quieras. También funciona sin configurar la l
 
 **Correos automáticos:**
 
-- **Todos los días a las 8:00 am**: si un pago vence en 7 días o en 2 días, recibes un correo con el monto y si el saldo de tu cuenta alcanza.
+- **Todos los días a las 8:00 am**: si un pago vence en 7 días o en 2 días, recibes un correo con el monto y si el saldo de tu cuenta alcanza, contando los ingresos programados que llegan antes. A esa hora también se registran los ingresos y gastos marcados como "automáticos".
 - **Domingos a las 3:00 pm**: un resumen con el estado del presupuesto, el avance de tus metas, los pagos de las próximas 2 semanas y una acción recomendada para la semana.
 
 **Reglas que la app siempre respeta:**
@@ -219,7 +219,9 @@ La app ya rechaza cualquier correo distinto al tuyo; este paso agrega un segundo
 6. Configura tus datos reales:
    1. **Categorías**: presiona *Crear categorías básicas* y ajusta los presupuestos.
    2. **Cuentas**: da de alta tus tarjetas, con los días de corte y de pago y **solo los últimos 4 dígitos**.
-   3. **Calendario**: agrega tus pagos fijos (renta, seguros, colegiaturas…).
+   3. **Calendario**: agrega tus pagos fijos (renta, seguros, colegiaturas…) y tus ingresos fijos (nómina quincenal, por ejemplo).
+      - Marca **Registrar automáticamente** si quieres que el movimiento se cree solo en su fecha.
+      - No lo marques si también importas el estado de cuenta de esa cuenta, porque quedaría duplicado.
    4. **Metas**: crea tus metas de ahorro.
    5. **Agregar**: importa tu primer estado de cuenta.
 
@@ -353,6 +355,7 @@ Solo si quieres hacer cambios y verlos antes de publicarlos.
 | El enlace del correo dice "venció" | Usa el **código** del correo, o pide uno nuevo. Revisa que tu dirección esté en *Redirect URLs* (Paso 6.7). |
 | "Este correo no tiene acceso" | `ALLOWED_EMAIL` debe ser exactamente `leoromsol498@gmail.com`. |
 | "No se pudieron cargar… ¿Ejecutaste las migraciones?" | Repite el Paso 1 (pegar `supabase/setup.sql`). |
+| Después de una actualización, algo falla al guardar | Pega otra vez el `supabase/setup.sql` más reciente en el SQL Editor. Se puede ejecutar las veces que quieras sin perder datos. |
 | Error de IA "llave no válida" o "modelo no existe" | Revisa `ANTHROPIC_API_KEY`, que tengas crédito en Anthropic y el valor de `ANTHROPIC_MODEL`. |
 | No llegan alertas | En Ajustes, prueba **Enviar correo de prueba**. Si falla, revisa `RESEND_API_KEY` y que tu cuenta de Resend sea `leoromsol498@gmail.com`. Después revisa Vercel → *Settings → Cron Jobs → View logs*. |
 | El PDF tarda o falla | Los PDF muy largos o escaneados como imagen pueden fallar. Prueba con el PDF original del banco o divídelo. |
