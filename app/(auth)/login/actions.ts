@@ -21,8 +21,23 @@ export async function enviarEnlace(_prev: LoginState, formData: FormData): Promi
     email,
     options: { emailRedirectTo: `${origin}/auth/confirm`, shouldCreateUser: true },
   });
-  if (error) return { error: `No se pudo enviar el correo: ${error.message}`, email };
+  if (error) {
+    console.error("[login] Supabase rechazó el envío del correo:", error.status, error.code, error.message);
+    return { error: `No se pudo enviar el correo: ${traducirError(error.message)}`, email };
+  }
+  console.info("[login] Supabase aceptó el envío del enlace de acceso");
   return { enviado: true, email };
+}
+
+function traducirError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("rate limit") || m.includes("security purposes"))
+    return "pediste demasiados correos seguidos. Espera unos minutos e intenta de nuevo.";
+  if (m.includes("sending") || m.includes("smtp"))
+    return "Supabase no pudo entregar el correo. Revisa la configuración SMTP (Paso 2 del README) y el registro de envíos en Resend.";
+  if (m.includes("not authorized"))
+    return "Supabase solo envía a correos autorizados. Configura el SMTP de Resend (Paso 2 del README).";
+  return msg;
 }
 
 export async function verificarCodigo(_prev: LoginState, formData: FormData): Promise<LoginState> {
