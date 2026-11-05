@@ -153,13 +153,16 @@ export async function prepararManual(input: {
 }
 
 // ---------- Guardar lo confirmado ----------
-export async function guardarBorradores(drafts: DraftTransaction[], importId: string | null): Promise<{ guardados?: number; error?: string }> {
+export async function guardarBorradores(
+  drafts: DraftTransaction[],
+  importId: string | null,
+): Promise<{ guardados?: number; ignorados?: number; error?: string }> {
   const { supabase, user } = await requireUser();
   try {
-    const guardados = await guardarMovimientos(supabase, user.id, drafts, importId);
+    const { guardados, ignorados } = await guardarMovimientos(supabase, user.id, drafts, importId);
     if (importId) await supabase.from("imports").update({ estado: "confirmado" }).eq("id", importId);
     revalidatePath("/", "layout");
-    return { guardados };
+    return { guardados, ignorados };
   } catch (e) {
     return { error: (e as Error).message };
   }

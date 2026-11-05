@@ -177,3 +177,23 @@ describe("programados", () => {
     expect(siguienteVencimiento({ frecuencia: "mensual", proximo_vencimiento: "2026-12-01" }, "2026-11-05")).toBeNull();
   });
 });
+
+import { asignarHashes } from "@/lib/hash";
+
+describe("duplicados a propósito", () => {
+  const cafe = { fecha: "2026-11-05", monto: 50, descripcion: "Café" };
+  it("un repetido marcado recibe un hash distinto", () => {
+    const existente = transactionHash(cafe.fecha, cafe.monto, cafe.descripcion);
+    const [h] = asignarHashes([{ ...cafe, forzar: true }], new Set([existente]));
+    expect(h).not.toBe(existente);
+  });
+  it("dos repetidos en el mismo lote no chocan entre sí", () => {
+    const existente = transactionHash(cafe.fecha, cafe.monto, cafe.descripcion);
+    const hs = asignarHashes([{ ...cafe, forzar: true }, { ...cafe, forzar: true }], new Set([existente]));
+    expect(new Set([existente, ...hs]).size).toBe(3);
+  });
+  it("sin marcar conserva el hash normal (la base lo ignora)", () => {
+    const existente = transactionHash(cafe.fecha, cafe.monto, cafe.descripcion);
+    expect(asignarHashes([{ ...cafe, forzar: false }], new Set([existente]))).toEqual([existente]);
+  });
+});

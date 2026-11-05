@@ -50,7 +50,10 @@ export function PreviewEditor({
       const r = await guardarBorradores(incluidos, importId);
       if (r.error) setResultado(`Error: ${r.error}`);
       else {
-        setResultado(`Se guardaron ${r.guardados} movimientos.`);
+        setResultado(
+          (r.guardados === 1 ? "Se guardó 1 movimiento." : `Se guardaron ${r.guardados} movimientos.`) +
+            (r.ignorados ? ` ${r.ignorados} ya existía${r.ignorados === 1 ? "" : "n"} y no se repiti${r.ignorados === 1 ? "ó" : "eron"}.` : ""),
+        );
         router.refresh();
         setTimeout(onDone, 1200);
       }
@@ -134,7 +137,9 @@ export function PreviewEditor({
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
               <div className="col-span-2 flex flex-wrap gap-1 md:col-span-6">
-                {r.duplicado && <Badge>Posible duplicado</Badge>}
+                {r.duplicado && (
+                  <Badge>{r.incluir ? "Repetido a propósito: se guardará como otro movimiento" : "Posible duplicado (márcalo si es otro gasto igual)"}</Badge>
+                )}
                 {r.origen_categoria === "regla" && <Badge>Por regla</Badge>}
                 {r.origen_categoria === "ia" && r.confianza !== null && <Badge>IA {Math.round(r.confianza * 100)}%</Badge>}
                 {r.requiere_revision && r.incluir && <Badge>Por revisar</Badge>}

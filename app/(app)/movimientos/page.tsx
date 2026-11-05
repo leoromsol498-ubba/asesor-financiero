@@ -23,7 +23,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from("transactions")
-    .select("id, fecha, descripcion_original, comercio, monto, tipo, category_id, es_recurrente, requiere_revision, accounts(nombre)")
+    .select("id, fecha, descripcion_original, comercio, monto, tipo, category_id, es_recurrente, requiere_revision, account_id, es_demo, accounts(nombre, saldo_fecha)")
     .gte("fecha", inicio)
     .lte("fecha", monthEnd(inicio))
     .order("fecha", { ascending: false })
@@ -76,12 +76,24 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         <button className={cn(buttonVariants({ variant: "secondary" }), "col-span-2 md:col-span-1")}>Filtrar</button>
       </form>
 
+      <p className="mb-3 text-xs text-muted-foreground">
+        Un movimiento actualiza el saldo de su cuenta solo si tiene cuenta y su fecha es igual o posterior al día en que capturaste el saldo.
+        Si un saldo no cuadra con tu banco, corrígelo en <Link href="/cuentas" className="underline">Cuentas</Link>.
+      </p>
+
       {lista.length === 0 ? (
         <Empty titulo="Sin movimientos en este periodo" href="/importar" accion="Agregar movimientos" />
       ) : (
         <div className="divide-y divide-border rounded-xl border border-border">
           {lista.map((t) => {
-            const acc = t.accounts as unknown as { nombre: string } | null;
+            const acc = t.accounts as unknown as { nombre: string; saldo_fecha: string | null } | null;
+            const noAfecta = t.es_demo
+              ? null
+              : !t.account_id
+                ? "Sin cuenta: no afecta saldo"
+                : acc?.saldo_fecha && t.fecha < acc.saldo_fecha
+                  ? `Anterior al saldo del ${fechaCorta(acc.saldo_fecha)}: no lo afecta`
+                  : null;
             return (
               <div key={t.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:gap-4">
                 <div className="min-w-0 flex-1">
@@ -93,6 +105,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
                   <p className="truncate text-xs text-muted-foreground">
                     {fechaCorta(t.fecha)}{acc ? ` · ${acc.nombre}` : ""} · {t.descripcion_original}
                   </p>
+                  {noAfecta && <p className="mt-1 text-[11px] text-neutral-500">○ {noAfecta}</p>}
                 </div>
                 <div className="flex items-center justify-between gap-2 md:justify-end">
                   <CategorySelect txId={t.id} value={t.category_id} categorias={cats ?? []} />

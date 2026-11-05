@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { AIError, categorizarLote } from "./ai";
 import { CONFIANZA_MINIMA } from "./config";
 import { addMonths } from "./dates";
-import { transactionHash } from "./hash";
+import { asignarHashes, transactionHash, transactionHashRepetido } from "./hash";
 import { detectarRecurrentes } from "./recurring";
 import { buscarRegla } from "./rules";
 import { maskSensitiveNumbers } from "./text";
@@ -139,25 +139,45 @@ export async function guardarMovimientos(
   userId: string,
   drafts: DraftTransaction[],
   importId: string | null = null,
-): Promise<number> {
-  const filas = drafts
-    .filter((d) => d.incluir)
-    .map((d) => ({
-      user_id: userId,
-      account_id: d.account_id || null,
-      fecha: d.fecha,
-      descripcion_original: maskSensitiveNumbers(d.descripcion_original).slice(0, 300),
-      comercio: d.comercio ? maskSensitiveNumbers(d.comercio).slice(0, 80) : null,
-      monto: Math.abs(Number(d.monto)),
-      tipo: d.tipo,
-      category_id: d.category_id || null,
-      requiere_revision: d.requiere_revision,
-      confianza: d.confianza,
-      // Si el usuario cambió fecha/monto/descripción en la vista previa, recalculamos el hash
-      hash_unico: transactionHash(d.fecha, Number(d.monto), maskSensitiveNumbers(d.descripcion_original).slice(0, 300)),
-      import_id: importId,
-    }));
-  if (filas.length === 0) return 0;
+): Promise<{ guardados: number; ignorados: number }> {
+  const incluidos = drafts.filter((d) => d.incluir);
+  if (incluidos.length === 0) return { guardados: 0, ignorados: 0 };
+
+  const base = incluidos.map((d) => ({
+    fecha: d.fecha,
+    monto: Math.abs(Number(d.monto)),
+    descripcion: maskSensitiveNumbers(d.descripcion_original).slice(0, 300),
+    forzar: d.duplicado, // marcado a propósito en la vista previa
+  }));
+
+  // Hashes que ya existen (incluidas las variantes #2..#10 de los repetidos a propósito)
+  const candidatos = new Set<string>();
+  for (const b of base) {
+    const max = b.forzar ? 10 : 1;
+    for (let n = 1; n <= max; n++) candidatos.add(transactionHashRepetido(b.fecha, b.monto, b.descripcion, n));
+  }
+  const lista = [...candidatos];
+  const existentes = new Set<string>();
+  for (let i = 0; i < lista.length; i += 200) {
+    const { data } = await supabase.from("transactions").select("hash_unico").in("hash_unico", lista.slice(i, i + 200));
+    data?.forEach((r) => existentes.add(r.hash_unico));
+  }
+  const hashes = asignarHashes(base, existentes);
+
+  const filas = incluidos.map((d, i) => ({
+    user_id: userId,
+    account_id: d.account_id || null,
+    fecha: d.fecha,
+    descripcion_original: base[i].descripcion,
+    comercio: d.comercio ? maskSensitiveNumbers(d.comercio).slice(0, 80) : null,
+    monto: base[i].monto,
+    tipo: d.tipo,
+    category_id: d.category_id || null,
+    requiere_revision: d.requiere_revision,
+    confianza: d.confianza,
+    hash_unico: hashes[i],
+    import_id: importId,
+  }));
 
   let guardados = 0;
   for (let i = 0; i < filas.length; i += 500) {
@@ -170,7 +190,7 @@ export async function guardarMovimientos(
   }
 
   await marcarRecurrentes(supabase);
-  return guardados;
+  return { guardados, ignorados: filas.length - guardados };
 }
 
 /** Revisa los gastos de los últimos 6 meses y marca los recurrentes. */
