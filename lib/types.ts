@@ -2,7 +2,7 @@
 
 export type TipoCuenta = "debito" | "credito" | "efectivo" | "ahorro";
 export type TipoMovimiento = "gasto" | "ingreso";
-export type Frecuencia = "mensual" | "anual" | "unica";
+export type Frecuencia = "semanal" | "catorcenal" | "quincenal" | "mensual" | "anual" | "unica";
 
 export interface Account {
   id: string;
@@ -69,6 +69,9 @@ export interface ScheduledPayment {
   frecuencia: Frecuencia;
   proximo_vencimiento: string;
   account_id: string | null;
+  tipo: TipoMovimiento;
+  category_id: string | null;
+  registrar_automatico: boolean;
 }
 
 export interface ImportRow {

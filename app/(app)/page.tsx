@@ -10,6 +10,7 @@ import { pctMesTranscurrido } from "@/lib/budget";
 import { cargarPresupuesto } from "@/lib/data";
 import { todayISO } from "@/lib/dates";
 import { fechaCorta, mesCorto, mesLargo, money, pct } from "@/lib/format";
+import { registrarProgramados } from "@/lib/jobs";
 import { requireUser } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -24,8 +25,10 @@ function Stat({ label, value, sub, rojo }: { label: string; value: string; sub?:
 }
 
 export default async function DashboardPage() {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
   const hoy = todayISO();
+  // Si hay ingresos/gastos automáticos cuya fecha ya llegó, se registran al abrir la app
+  await registrarProgramados(supabase, user.id, hoy).catch(() => 0);
   const d = await cargarPresupuesto(supabase, hoy);
   const pctMes = pctMesTranscurrido(hoy);
 

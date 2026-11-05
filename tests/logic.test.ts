@@ -149,3 +149,31 @@ describe("dirección de Supabase", () => {
     expect(limpiarUrlSupabase("http://127.0.0.1:54321")).toBe("http://127.0.0.1:54321");
   });
 });
+
+import { ocurrencias, siguienteVencimiento } from "@/lib/calendar";
+
+describe("programados", () => {
+  it("quincenal el 15 y fin de mes", () => {
+    expect(ocurrencias({ frecuencia: "quincenal", proximo_vencimiento: "2026-11-15" }, "2026-11-01", "2027-01-31")).toEqual([
+      "2026-11-15", "2026-11-30", "2026-12-15", "2026-12-31", "2027-01-15", "2027-01-31",
+    ]);
+  });
+  it("quincenal el 1 y el 16", () => {
+    expect(ocurrencias({ frecuencia: "quincenal", proximo_vencimiento: "2026-11-16" }, "2026-11-01", "2026-12-20")).toEqual([
+      "2026-11-16", "2026-12-01", "2026-12-16",
+    ]);
+  });
+  it("semanal y catorcenal", () => {
+    expect(ocurrencias({ frecuencia: "semanal", proximo_vencimiento: "2026-11-06" }, "2026-11-10", "2026-11-30")).toEqual(["2026-11-13", "2026-11-20", "2026-11-27"]);
+    expect(ocurrencias({ frecuencia: "catorcenal", proximo_vencimiento: "2026-11-06" }, "2026-11-01", "2026-12-10")).toEqual(["2026-11-06", "2026-11-20", "2026-12-04"]);
+  });
+  it("mensual en fin de mes y anual", () => {
+    expect(ocurrencias({ frecuencia: "mensual", proximo_vencimiento: "2026-01-31" }, "2026-01-01", "2026-03-31")).toEqual(["2026-01-31", "2026-02-28", "2026-03-31"]);
+    expect(ocurrencias({ frecuencia: "anual", proximo_vencimiento: "2026-06-10" }, "2026-01-01", "2028-01-01")).toEqual(["2026-06-10", "2027-06-10"]);
+  });
+  it("avanza el vencimiento de un pago que ya pasó", () => {
+    expect(siguienteVencimiento({ frecuencia: "quincenal", proximo_vencimiento: "2026-10-15" }, "2026-11-05")).toBe("2026-11-15");
+    expect(siguienteVencimiento({ frecuencia: "unica", proximo_vencimiento: "2026-10-15" }, "2026-11-05")).toBeNull();
+    expect(siguienteVencimiento({ frecuencia: "mensual", proximo_vencimiento: "2026-12-01" }, "2026-11-05")).toBeNull();
+  });
+});

@@ -182,6 +182,9 @@ begin
     (uid, 'Pago tarjeta de crédito (demo)', 7350, 'mensual', (current_date + 7), a_debito, true),
     (uid, 'Seguro de auto (demo)', 14800, 'anual', (current_date + 40), a_debito, true),
     (uid, 'Predial (demo)', 2300, 'unica', (current_date + 12), a_debito, true);
+  insert into scheduled_payments (user_id, nombre, monto, frecuencia, proximo_vencimiento, account_id, tipo, category_id, es_demo)
+  values (uid, 'Nómina (demo)', 16500, 'quincenal',
+    (date_trunc('month', current_date) + interval '14 days')::date, a_debito, 'ingreso', c_ingreso, true);
 end $$;
 
 revoke all on function public.cargar_datos_demo() from public, anon;

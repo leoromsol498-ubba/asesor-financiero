@@ -1,9 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { accionSemanal } from "./ai";
-import { eventosEntre, siguienteVencimiento, type Evento } from "./calendar";
+import { eventosEntre, ocurrencias, siguienteVencimiento, type Evento } from "./calendar";
 import { cargarPresupuesto } from "./data";
 import { addDays, diffDays } from "./dates";
+import { transactionHash } from "./hash";
 import { enviarCorreo, esc, plantilla, ROJO, tabla } from "./email";
 import { fechaCorta, money, pct } from "./format";
 import { analizarMeta } from "./goals";
@@ -13,7 +14,46 @@ import type { Account, ScheduledPayment } from "./types";
 // Estas funciones reciben siempre el user_id y filtran por él, porque los
 // crons usan el cliente administrador (que no tiene RLS).
 
+/**
+ * Crea los movimientos de los ingresos/gastos programados con "registrar
+ * automáticamente" cuya fecha ya llegó. Es seguro llamarla varias veces:
+ * cada ocurrencia tiene un hash_unico fijo, así que nunca se duplica.
+ */
+export async function registrarProgramados(db: SupabaseClient, userId: string, hoy: string): Promise<number> {
+  const { data } = await db
+    .from("scheduled_payments")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("registrar_automatico", true)
+    .lte("proximo_vencimiento", hoy);
+  const filas = ((data ?? []) as ScheduledPayment[]).flatMap((p) =>
+    ocurrencias(p, p.proximo_vencimiento, hoy).map((fecha) => ({
+      user_id: userId,
+      account_id: p.account_id,
+      fecha,
+      descripcion_original: p.nombre,
+      comercio: p.nombre,
+      monto: Math.abs(Number(p.monto)),
+      tipo: p.tipo,
+      category_id: p.category_id,
+      requiere_revision: !p.category_id,
+      confianza: p.category_id ? 1 : null,
+      es_recurrente: p.frecuencia !== "unica",
+      hash_unico: transactionHash(fecha, Number(p.monto), `programado ${p.id}`),
+    })),
+  );
+  if (filas.length === 0) return 0;
+  const { data: creados, error } = await db
+    .from("transactions")
+    .upsert(filas, { onConflict: "user_id,hash_unico", ignoreDuplicates: true })
+    .select("id");
+  if (error) throw new Error(`No se pudieron registrar los programados: ${error.message}`);
+  return creados?.length ?? 0;
+}
+
 async function cargarCuentasYPagos(db: SupabaseClient, userId: string, hoy: string) {
+  // Primero se registran los automáticos que ya tocaban (antes de mover sus fechas)
+  await registrarProgramados(db, userId, hoy);
   const [{ data: cuentas }, { data: pagos }] = await Promise.all([
     db.from("accounts").select("*").eq("user_id", userId),
     db.from("scheduled_payments").select("*").eq("user_id", userId),
@@ -31,7 +71,7 @@ async function cargarCuentasYPagos(db: SupabaseClient, userId: string, hoy: stri
   return { cuentas: (cuentas ?? []) as Account[], pagos: pays };
 }
 
-/** ¿Alcanza el saldo? Considera todos los pagos de la misma cuenta hasta esa fecha. */
+/** ¿Alcanza el saldo? Considera los pagos e ingresos programados de la misma cuenta hasta esa fecha. */
 function evaluarSaldo(e: Evento, todos: Evento[], cuentas: Account[]): { texto: string; alcanza: boolean | null } {
   if (e.tipo === "limite") {
     const disponible = cuentas.filter((c) => c.tipo === "debito" || c.tipo === "efectivo").reduce((s, c) => s + Number(c.saldo_actual), 0);
@@ -45,17 +85,25 @@ function evaluarSaldo(e: Evento, todos: Evento[], cuentas: Account[]): { texto: 
   const comprometido = todos
     .filter((x) => x.tipo === "pago" && x.account_id === cuenta.id && x.fecha <= e.fecha && x.monto)
     .reduce((s, x) => s + (x.monto ?? 0), 0);
+  const entradas = todos
+    .filter((x) => x.tipo === "ingreso" && x.account_id === cuenta.id && x.fecha <= e.fecha && x.monto)
+    .reduce((s, x) => s + (x.monto ?? 0), 0);
   const saldo = Number(cuenta.saldo_actual);
-  const alcanza = saldo >= comprometido;
+  const alcanza = saldo + entradas >= comprometido;
   return {
-    texto: `${alcanza ? "Alcanza" : "No alcanza"}: ${cuenta.nombre} tiene ${money(saldo)}${comprometido > (e.monto ?? 0) ? ` y debe cubrir ${money(comprometido)} en pagos próximos` : ""}`,
+    texto:
+      `${alcanza ? "Alcanza" : "No alcanza"}: ${cuenta.nombre} tiene ${money(saldo)}` +
+      (entradas > 0 ? ` y recibirá ${money(entradas)} antes` : "") +
+      (comprometido > (e.monto ?? 0) ? `; debe cubrir ${money(comprometido)} en pagos próximos` : ""),
     alcanza,
   };
 }
 
 export async function revisarPagos(db: SupabaseClient, userId: string, hoy: string, opciones: { forzar?: boolean } = {}) {
   const { cuentas, pagos } = await cargarCuentasYPagos(db, userId, hoy);
-  const eventos = eventosEntre(cuentas, pagos, hoy, addDays(hoy, 7)).filter((e) => e.tipo !== "corte");
+  const todos = eventosEntre(cuentas, pagos, hoy, addDays(hoy, 7)).filter((e) => e.tipo !== "corte");
+  // Solo se avisa de pagos (los ingresos sirven para calcular si alcanza)
+  const eventos = todos.filter((e) => e.tipo === "pago" || e.tipo === "limite");
 
   const alertas: { e: Evento; dias: number; clave: string }[] = [];
   for (const e of eventos) {
@@ -75,7 +123,7 @@ export async function revisarPagos(db: SupabaseClient, userId: string, hoy: stri
   if (pendientes.length === 0) return { enviados: 0, revisados: eventos.length };
 
   const filas = pendientes.map(({ e, dias }) => {
-    const s = evaluarSaldo(e, eventos, cuentas);
+    const s = evaluarSaldo(e, todos, cuentas);
     const cuando = dias === 0 ? "<strong>hoy</strong>" : dias === 1 ? "mañana" : `en ${dias} días`;
     return [
       `<strong>${esc(e.nombre)}</strong><br><span style="color:#737373;font-size:12px">${fechaCorta(e.fecha)} · ${cuando}</span><br><span style="font-size:12px;${s.alcanza === false ? `color:${ROJO}` : "color:#404040"}">${esc(s.texto)}</span>`,
@@ -122,7 +170,7 @@ export async function reporteSemanal(db: SupabaseClient, userId: string, hoy: st
       presupuesto_mes: p.presupuestoTotal,
       categorias: p.resumen.slice(0, 8).map((r) => ({ categoria: r.categoria.nombre, gastado: r.gastado, presupuesto: r.presupuesto, proyeccion: r.proyeccion, estado: r.estado })),
       metas: metasA.map(({ m, a }) => ({ nombre: m.nombre, falta: a.falta, por_mes: a.porMes, ritmo_mensual: a.ritmoMensual, meses_retraso: a.mesesRetraso })),
-      pagos_14_dias: proximos.map((e) => ({ nombre: e.nombre, fecha: e.fecha, monto: e.monto })),
+      pagos_e_ingresos_14_dias: proximos.map((e) => ({ nombre: e.nombre, tipo: e.tipo === "ingreso" ? "ingreso" : "pago", fecha: e.fecha, monto: e.monto })),
     });
   } catch {
     const peor = p.resumen.find((r) => r.estado === "excedido" || r.estado === "en_riesgo");
@@ -152,15 +200,20 @@ export async function reporteSemanal(db: SupabaseClient, userId: string, hoy: st
     : `<p style="color:#737373;font-size:14px">Sin metas registradas.</p>`;
 
   const pagosHTML = proximos.length
-    ? tabla(proximos.map((e) => [`${fechaCorta(e.fecha)} · ${esc(e.nombre)}`, e.monto !== null ? money(e.monto) : "—"]))
-    : `<p style="color:#737373;font-size:14px">Sin pagos en los próximos 14 días.</p>`;
+    ? tabla(
+        proximos.map((e) => [
+          `${fechaCorta(e.fecha)} · ${esc(e.nombre)}${e.tipo === "ingreso" ? ' <span style="color:#737373;font-size:12px">(ingreso)</span>' : ""}`,
+          e.monto !== null ? `${e.tipo === "ingreso" ? "+" : ""}${money(e.monto)}` : "—",
+        ]),
+      )
+    : `<p style="color:#737373;font-size:14px">Sin pagos ni ingresos en los próximos 14 días.</p>`;
 
   const cuerpo = `
     <p style="font-size:14px;margin:0 0 16px">Llevas <strong>${money(p.gastadoMes)}</strong> de <strong>${money(p.presupuestoTotal)}</strong> este mes.</p>
     <div style="background:#0a0a0a;color:#fff;border-radius:8px;padding:12px 14px;margin:0 0 20px;font-size:14px"><strong>Acción de la semana:</strong> ${esc(accion)}</div>
     <h2 style="font-size:15px;margin:20px 0 4px">Presupuesto</h2>${presupuestoHTML}
     <h2 style="font-size:15px;margin:20px 0 4px">Metas de ahorro</h2>${metasHTML}
-    <h2 style="font-size:15px;margin:20px 0 4px">Pagos de los próximos 14 días</h2>${pagosHTML}`;
+    <h2 style="font-size:15px;margin:20px 0 4px">Pagos e ingresos de los próximos 14 días</h2>${pagosHTML}`;
 
   await enviarCorreo(`Tu resumen semanal · ${fechaCorta(hoy)}`, plantilla("Resumen semanal", cuerpo));
   return { ok: true };

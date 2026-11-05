@@ -3,7 +3,7 @@ import { ActionForm, ConfirmButton } from "@/components/app/action-form";
 import { PageHeader } from "@/components/app/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { eventosEntre } from "@/lib/calendar";
+import { eventosEntre, FRECUENCIAS } from "@/lib/calendar";
 import { addMonths, daysInMonth, monthEnd, parseISO, todayISO } from "@/lib/dates";
 import { fechaCorta, mesLargo, money } from "@/lib/format";
 import { requireUser } from "@/lib/supabase/server";
@@ -13,8 +13,7 @@ import { actualizarPago, borrarPago, crearPago } from "./actions";
 import { PaymentFields } from "./payment-fields";
 
 const DIAS = ["L", "M", "M", "J", "V", "S", "D"];
-const MARCA = { corte: "○", limite: "●", pago: "■" };
-const FRECUENCIA = { mensual: "Mensual", anual: "Anual", unica: "Única" };
+const MARCA = { corte: "○", limite: "●", pago: "■", ingreso: "▲" };
 
 export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const sp = await searchParams;
@@ -22,10 +21,12 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
   const mes = /^\d{4}-\d{2}$/.test(sp.mes ?? "") ? sp.mes! : hoy.slice(0, 7);
   const inicio = `${mes}-01`;
   const { supabase } = await requireUser();
-  const [{ data: cuentas }, { data: pagos }] = await Promise.all([
+  const [{ data: cuentas }, { data: pagos }, { data: categorias }] = await Promise.all([
     supabase.from("accounts").select("*").order("nombre"),
     supabase.from("scheduled_payments").select("*").order("proximo_vencimiento"),
+    supabase.from("categories").select("id, nombre").order("nombre"),
   ]);
+  const cats = categorias ?? [];
   const accs = (cuentas ?? []) as Account[];
   const pays = (pagos ?? []) as ScheduledPayment[];
   const eventos = eventosEntre(accs, pays, inicio, monthEnd(inicio));
@@ -37,7 +38,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
 
   return (
     <>
-      <PageHeader titulo="Calendario de pagos" descripcion="○ corte de tarjeta · ● fecha límite de pago · ■ pago programado" />
+      <PageHeader titulo="Calendario de pagos" descripcion="○ corte de tarjeta · ● límite de pago · ■ pago programado · ▲ ingreso programado" />
 
       <div className="mb-3 flex items-center justify-between">
         <Link href={`/calendario?mes=${addMonths(inicio, -1).slice(0, 7)}`} className={buttonVariants({ variant: "outline", size: "sm" })}>←</Link>
@@ -82,7 +83,11 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
             {eventos.map((e, i) => (
               <div key={i} className={cn("flex justify-between gap-2 py-2 text-sm", e.fecha < hoy && "opacity-50")}>
                 <span>{MARCA[e.tipo]} {fechaCorta(e.fecha)} · {e.nombre}</span>
-                {e.monto !== null && <span className="tabular font-medium">{money(e.monto)}</span>}
+                {e.monto !== null && (
+                  <span className={cn("tabular font-medium", e.tipo === "ingreso" && "text-neutral-500")}>
+                    {e.tipo === "ingreso" ? "+" : ""}{money(e.monto)}
+                  </span>
+                )}
               </div>
             ))}
           </CardContent>
@@ -90,28 +95,35 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
 
         <Card>
           <CardHeader>
-            <CardTitle>Pagos programados</CardTitle>
-            <CardDescription>Recibirás un correo 7 y 2 días antes. Las fechas de tarjetas se toman de “Cuentas”.</CardDescription>
+            <CardTitle>Pagos e ingresos programados</CardTitle>
+            <CardDescription>
+              De los pagos recibes un correo 7 y 2 días antes. Los ingresos (ej. tu nómina) cuentan para saber si te alcanza, y pueden registrarse solos. Las fechas de tarjetas se toman de “Cuentas”.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {pays.map((p) => (
               <details key={p.id} className="rounded-lg border border-border p-3">
                 <summary className="flex cursor-pointer justify-between gap-2 text-sm">
-                  <span>{p.nombre} · {FRECUENCIA[p.frecuencia]} · {fechaCorta(p.proximo_vencimiento)}</span>
-                  <span className="tabular font-medium">{money(p.monto)}</span>
+                  <span>
+                    {p.tipo === "ingreso" ? "▲" : "■"} {p.nombre} · {FRECUENCIAS[p.frecuencia]} · {fechaCorta(p.proximo_vencimiento)}
+                    {p.registrar_automatico && <span className="text-xs text-muted-foreground"> · automático</span>}
+                  </span>
+                  <span className={cn("tabular font-medium", p.tipo === "ingreso" && "text-neutral-500")}>
+                    {p.tipo === "ingreso" ? "+" : ""}{money(p.monto)}
+                  </span>
                 </summary>
                 <div className="mt-3 flex flex-col gap-2">
                   <ActionForm action={actualizarPago.bind(null, p.id)}>
-                    <PaymentFields p={p} cuentas={accs} hoy={hoy} />
+                    <PaymentFields p={p} cuentas={accs} categorias={cats} hoy={hoy} />
                   </ActionForm>
                   <ConfirmButton action={borrarPago.bind(null, p.id)} confirmText="¿Borrar este pago?">Borrar</ConfirmButton>
                 </div>
               </details>
             ))}
             <div className="rounded-lg bg-muted p-3">
-              <p className="mb-2 text-sm font-medium">Nuevo pago</p>
-              <ActionForm action={crearPago} submit="Agregar pago" resetOnSuccess>
-                <PaymentFields cuentas={accs} hoy={hoy} />
+              <p className="mb-2 text-sm font-medium">Nuevo pago o ingreso</p>
+              <ActionForm action={crearPago} submit="Agregar" resetOnSuccess>
+                <PaymentFields cuentas={accs} categorias={cats} hoy={hoy} />
               </ActionForm>
             </div>
           </CardContent>
