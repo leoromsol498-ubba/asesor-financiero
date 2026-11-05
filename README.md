@@ -124,14 +124,35 @@ Crea estas cuentas antes de empezar. Todas tienen plan gratuito, **excepto Anthr
 
 ### Paso 2. Configurar el inicio de sesión en Supabase
 
+> **Haz primero el Paso 5 (Resend).** Supabase pide un servidor de correo propio (SMTP) para poder personalizar la plantilla, y usaremos Resend.
+
 1. Ve a **Authentication → Sign In / Providers** y confirma que **Email** está activado.
-2. Ve a **Authentication → Emails → Templates → Magic Link**:
+2. Ve a **Authentication → Emails → SMTP Settings**, activa **Enable custom SMTP** y llena:
+
+   | Campo | Valor |
+   |---|---|
+   | Sender email address | `onboarding@resend.dev` (no tu Gmail: Resend no puede enviar desde una dirección de Gmail) |
+   | Sender name | `Asesor Financiero` |
+   | Host | `smtp.resend.com` |
+   | Port number | `465` |
+   | Username | `resend` (literalmente esa palabra) |
+   | Password | Una llave de API de Resend (`re_…`). Crea una aparte llamada `supabase-smtp`. |
+
+   Presiona **Save**. Esto también sube el límite a 30 correos por hora.
+
+   *Alternativa con Gmail:*
+   - Host: `smtp.gmail.com`
+   - Puerto: `465`
+   - Usuario: tu Gmail
+   - Contraseña: una **contraseña de aplicación** de Google (myaccount.google.com → Seguridad; requiere verificación en 2 pasos). Nunca tu contraseña normal.
+   - Sender email address: tu Gmail.
+3. Ve a **Authentication → Emails → Templates → Magic Link**:
    - En **Subject** escribe `Tu acceso a Asesor Financiero`.
    - En **Body** borra todo y pega el contenido de [`supabase/plantilla-correo-acceso.html`](supabase/plantilla-correo-acceso.html).
    - Presiona **Save**.
 
    Con esta plantilla el correo trae un botón **y** un código. El código sirve si abres el correo en un dispositivo distinto al que usas para entrar.
-3. **URL Configuration** se llena en el Paso 6, cuando ya tengas la dirección de Vercel.
+4. **URL Configuration** se llena en el Paso 6, cuando ya tengas la dirección de Vercel.
 
 ### Paso 3. Copiar las llaves de Supabase
 
@@ -328,7 +349,7 @@ Solo si quieres hacer cambios y verlos antes de publicarlos.
 | Síntoma | Solución |
 |---|---|
 | "Falta configurar Supabase" | Faltan `NEXT_PUBLIC_SUPABASE_URL` o `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Agrégalas y haz **Redeploy**. Las variables `NEXT_PUBLIC_*` solo se aplican al volver a desplegar. |
-| No llega el correo de acceso | Revisa spam. Sin SMTP propio, Supabase solo envía unos pocos correos por hora; espera unos minutos. Puedes conectar Resend como SMTP en Supabase → *Authentication → Emails → SMTP Settings*. |
+| No llega el correo de acceso | Revisa spam. Confirma el SMTP del Paso 2: el remitente debe ser `onboarding@resend.dev`, el usuario `resend` y la contraseña tu llave `re_…`. En Resend → *Emails* puedes ver si el envío falló y por qué. |
 | El enlace del correo dice "venció" | Usa el **código** del correo, o pide uno nuevo. Revisa que tu dirección esté en *Redirect URLs* (Paso 6.7). |
 | "Este correo no tiene acceso" | `ALLOWED_EMAIL` debe ser exactamente `leoromsol498@gmail.com`. |
 | "No se pudieron cargar… ¿Ejecutaste las migraciones?" | Repite el Paso 1 (pegar `supabase/setup.sql`). |
