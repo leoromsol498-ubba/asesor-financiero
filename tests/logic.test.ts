@@ -6,6 +6,7 @@ import { aplicarMapeo, detectarMapeo, parseFecha, parseMonto } from "@/lib/colum
 import { maskSensitiveNumbers, merchantKey } from "@/lib/text";
 import { transactionHash } from "@/lib/hash";
 import { addMonths, nextDayOfMonth, todayISO } from "@/lib/dates";
+import { limpiarUrlSupabase } from "@/lib/supabase/url";
 
 const cat = (id: string, presupuesto: number) => ({ id, nombre: id, presupuesto_mensual: presupuesto });
 const mov = (id: string, category_id: string, monto: number, fecha = "2026-11-05") => ({
@@ -136,5 +137,15 @@ describe("fechas", () => {
     expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
     expect(nextDayOfMonth("2026-11-20", 5)).toBe("2026-12-05");
     expect(nextDayOfMonth("2026-11-20", 25)).toBe("2026-11-25");
+  });
+});
+
+describe("dirección de Supabase", () => {
+  it("quita rutas y diagonales copiadas por error", () => {
+    expect(limpiarUrlSupabase("https://abc.supabase.co/rest/v1/")).toBe("https://abc.supabase.co");
+    expect(limpiarUrlSupabase(" https://abc.supabase.co/ ")).toBe("https://abc.supabase.co");
+    expect(limpiarUrlSupabase("abc.supabase.co")).toBe("https://abc.supabase.co");
+    expect(limpiarUrlSupabase("\"https://abc.supabase.co/auth/v1\"")).toBe("https://abc.supabase.co");
+    expect(limpiarUrlSupabase("http://127.0.0.1:54321")).toBe("http://127.0.0.1:54321");
   });
 });

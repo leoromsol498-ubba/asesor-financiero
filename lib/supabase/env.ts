@@ -1,8 +1,10 @@
 // Acepta tanto los nombres nuevos de llaves de Supabase (publishable/secret)
 // como los anteriores (anon/service_role).
 
+import { limpiarUrlSupabase } from "./url";
+
 export function supabaseUrl(): string {
-  const v = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const v = limpiarUrlSupabase(process.env.NEXT_PUBLIC_SUPABASE_URL);
   if (!v) throw new Error("Falta la variable de entorno NEXT_PUBLIC_SUPABASE_URL");
   return v;
 }
