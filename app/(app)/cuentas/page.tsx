@@ -34,9 +34,15 @@ export default async function CuentasPage() {
               <p className="text-lg font-semibold tabular">{money(c.saldo_actual)}</p>
             </CardHeader>
             <CardContent>
-              <p className="mb-2 text-xs text-muted-foreground">
-                Se actualiza solo con los movimientos desde el {fechaCorta(c.saldo_fecha)}. Si no coincide con tu banco, edítalo.
-              </p>
+              {c.saldo_fecha ? (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Se actualiza solo con los movimientos desde el {fechaCorta(c.saldo_fecha)}. Si no coincide con tu banco, edítalo.
+                </p>
+              ) : (
+                <p className="mb-2 text-xs text-excedido">
+                  Falta actualizar la base de datos: pega otra vez supabase/setup.sql en Supabase.
+                </p>
+              )}
               {c.tipo === "credito" && (
                 <p className="mb-2 text-sm text-muted-foreground">
                   Corte: día {c.dia_corte ?? "—"} · Límite de pago: día {c.dia_limite_pago ?? "—"}
